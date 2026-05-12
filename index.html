@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>等速测试数据管理系统</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: #f0f2f5;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px; margin: 0 auto;
+            background: #fff; border-radius: 16px;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.12); overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #1a2a6c, #2d4373);
+            color: #fff; padding: 24px 32px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .header h1 { font-size: 24px; font-weight: 700; letter-spacing: 1px; }
+        .header p { font-size: 13px; opacity: 0.8; margin-top: 4px; }
+        .header-actions { display: flex; gap: 10px; }
+
+        .tabs {
+            display: flex; background: #f8f9fa; border-bottom: 1px solid #e8e8e8;
+        }
+        .tab {
+            flex: 1; padding: 14px 20px; text-align: center; cursor: pointer;
+            transition: all 0.25s; font-weight: 600; color: #666;
+            border-bottom: 3px solid transparent; user-select: none;
+        }
+        .tab:hover { background: #eef1f5; color: #333; }
+        .tab.active { background: #fff; color: #1a2a6c; border-bottom-color: #1a2a6c; }
+
+        .content { padding: 24px 32px; display: none; }
+        .content.active { display: block; }
+
+        .form-section {
+            background: #fafbfc; border: 1px solid #e8ecf0; border-radius: 10px;
+            padding: 20px 24px; margin-bottom: 20px;
+        }
+        .form-section:last-of-type { margin-bottom: 0; }
+        .form-title {
+            font-size: 17px; font-weight: 700; color: #1a2a6c; margin-bottom: 16px;
+            padding-left: 12px; border-left: 4px solid #1a2a6c;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 14px;
+        }
+        .info-grid .form-group { display: flex; flex-direction: column; }
+        .info-grid .form-group label { font-weight: 600; font-size: 13px; color: #555; margin-bottom: 4px; }
+        .info-grid .form-group input {
+            padding: 8px 12px; border: 1px solid #d0d5dd; border-radius: 6px;
+            font-size: 14px; transition: border-color 0.2s;
+        }
+        .info-grid .form-group input:focus { outline: none; border-color: #1a2a6c; box-shadow: 0 0 0 3px rgba(26,42,108,0.1); }
+
+        .test-table-wrap { overflow-x: auto; }
+        .test-table {
+            width: 100%; border-collapse: collapse; font-size: 14px; min-width: 900px;
+        }
+        .test-table th {
+            background: #1a2a6c; color: #fff; padding: 10px 12px;
+            font-weight: 600; font-size: 13px; text-align: center;
+            border: 1px solid #2d4373;
+        }
+        .test-table td {
+            border: 1px solid #dde0e5; padding: 6px 8px; text-align: center;
+            vertical-align: middle;
+        }
+        .test-table .row-label {
+            text-align: left; font-weight: 500; color: #333;
+            padding: 8px 12px; background: #f8f9fc; min-width: 200px;
+        }
+        .test-table .section-header td {
+            background: #eef2f7; font-weight: 700; color: #1a2a6c;
+            text-align: left; padding: 8px 12px;
+        }
+        .test-table input {
+            width: 100%; padding: 6px 8px; border: 1px solid #d0d5dd;
+            border-radius: 4px; font-size: 13px; text-align: center;
+            background: #fff; transition: all 0.2s;
+            min-width: 60px;
+        }
+        .test-table input:focus {
+            outline: none; border-color: #1a2a6c; box-shadow: 0 0 0 2px rgba(26,42,108,0.12);
+        }
+        .test-table .asym-cell { font-weight: 600; color: #e67e22; font-size: 13px; }
+        .test-table .note-cell input { min-width: 100px; }
+
+        .btn {
+            padding: 8px 18px; border: none; border-radius: 6px; cursor: pointer;
+            font-size: 14px; font-weight: 600; transition: all 0.25s;
+            display: inline-flex; align-items: center; gap: 6px;
+        }
+        .btn-primary { background: #1a2a6c; color: #fff; }
+        .btn-primary:hover { background: #243b8a; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(26,42,108,0.3); }
+        .btn-success { background: #0d9488; color: #fff; }
+        .btn-success:hover { background: #0f766e; transform: translateY(-1px); }
+        .btn-danger { background: #dc2626; color: #fff; }
+        .btn-danger:hover { background: #b91c1c; transform: translateY(-1px); }
+        .btn-info { background: #2563eb; color: #fff; }
+        .btn-info:hover { background: #1d4ed8; transform: translateY(-1px); }
+        .btn-export { background: #7c3aed; color: #fff; }
+        .btn-export:hover { background: #6d28d9; transform: translateY(-1px); }
+        .btn-outline { background: transparent; color: #1a2a6c; border: 2px solid #1a2a6c; }
+        .btn-outline:hover { background: #1a2a6c; color: #fff; }
+        .btn-sm { padding: 5px 12px; font-size: 12px; }
+
+        .action-bar {
+            display: flex; gap: 12px; justify-content: center;
+            padding: 20px 0 8px; flex-wrap: wrap;
+        }
+
+        .search-bar {
+            display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;
+            align-items: center;
+        }
+        .search-bar input, .search-bar select {
+            padding: 8px 12px; border: 1px solid #d0d5dd; border-radius: 6px;
+            font-size: 14px;
+        }
+        .search-bar input:focus, .search-bar select:focus {
+            outline: none; border-color: #1a2a6c;
+        }
+
+        .stats-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 14px; margin-bottom: 20px;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #1a2a6c, #2d4373);
+            color: #fff; padding: 16px; border-radius: 10px; text-align: center;
+        }
+        .stat-card h4 { font-size: 12px; opacity: 0.85; margin-bottom: 4px; }
+        .stat-card .value { font-size: 22px; font-weight: 700; }
+
+        .modal-overlay {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+            z-index: 1000; justify-content: center; align-items: center;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal {
+            background: #fff; border-radius: 12px; max-width: 700px; width: 90%;
+            max-height: 80vh; overflow-y: auto; padding: 28px 32px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .modal h2 { font-size: 20px; color: #1a2a6c; margin-bottom: 16px; }
+        .modal .close-btn {
+            float: right; background: none; border: none; font-size: 24px;
+            cursor: pointer; color: #999; line-height: 1;
+        }
+        .modal .close-btn:hover { color: #333; }
+        .modal table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .modal table th, .modal table td {
+            border: 1px solid #e0e0e0; padding: 6px 10px; text-align: center;
+        }
+        .modal table th { background: #f0f2f5; font-weight: 600; }
+
+        .toast {
+            position: fixed; top: 30px; left: 50%; transform: translateX(-50%);
+            background: #0d9488; color: #fff; padding: 12px 28px; border-radius: 8px;
+            font-size: 15px; font-weight: 600; z-index: 2000;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+            animation: slideDown 0.3s ease;
+        }
+        .toast.error { background: #dc2626; }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+
+        @media (max-width: 768px) {
+            .container { border-radius: 10px; }
+            .header { padding: 16px 20px; flex-direction: column; gap: 12px; text-align: center; }
+            .header h1 { font-size: 18px; }
+            .content { padding: 16px; }
+            .info-grid { grid-template-columns: repeat(2, 1fr); }
+            .test-table { font-size: 12px; }
+            .test-table td, .test-table th { padding: 4px 6px; }
+            .test-table input { font-size: 12px; padding: 4px; min-width: 40px; }
+            .test-table .row-label { min-width: 120px; font-size: 12px; }
+            .modal { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <div class="header">
+        <div>
+            <h1>等速测试数据管理系统</h1>
+            <p>肩部力量 · 下肢力量 · 弹跳能力 · 平衡能力 · 等速测试</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-export" onclick="exportCSV()">导出 CSV</button>
+            <button class="btn btn-info" onclick="exportJSON()">导出 JSON</button>
+        </div>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('input', this)">数据录入</div>
+        <div class="tab" onclick="switchTab('query', this)">历史查询</div>
+        <div class="tab" onclick="switchTab('analysis', this)">数据分析</div>
+    </div>
+
+    <!-- ==================== 数据录入 ==================== -->
+    <div id="input" class="content active">
+        <div class="form-section">
+            <div class="form-title">基本信息</div>
+            <div class="info-grid">
+                <div class="form-group">
+                    <label>姓名 *</label>
+                    <input type="text" id="athleteName" placeholder="请输入姓名">
+                </div>
+                <div class="form-group">
+                    <label>年龄 *</label>
+                    <input type="number" id="athleteAge" placeholder="请输入年龄">
+                </div>
+                <div class="form-group">
+                    <label>性别</label>
+                    <select id="athleteGender" style="padding:8px 12px;border:1px solid #d0d5dd;border-radius:6px;font-size:14px;">
+                        <option value="">请选择</option>
+                        <option value="男">男</option>
+                        <option value="女">女</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>身高 (cm)</label>
+                    <input type="number" id="athleteHeight" step="0.1" placeholder="身高">
+                </div>
+                <div class="form-group">
+                    <label>体重 (kg)</label>
+                    <input type="number" id="athleteWeight" step="0.1" placeholder="体重">
+                </div>
+                <div class="form-group">
+                    <label>测试日期 *</label>
+                    <input type="date" id="testDate">
+                </div>
+            </div>
+        </div>
+
+        <!-- 肩部力量测试 -->
+        <div class="form-section">
+            <div class="form-title">肩部力量测试</div>
+            <div class="test-table-wrap">
+                <table class="test-table" id="shoulderTable">
+                    <thead>
+                        <tr>
+                            <th style="min-width:200px;text-align:left;padding-left:12px;">测试项目</th>
+                            <th>左侧</th>
+                            <th>右侧</th>
+                            <th>不对称性 (%)</th>
+                            <th>备注</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td class="row-label">仰卧肩部内旋力量（肘部90°）</td>
+                            <td><input type="number" step="0.1" class="shoulder-left" data-key="shoulderIntRotL" oninput="calcAsymmetry(this,'shoulderIntRot')"></td>
+                            <td><input type="number" step="0.1" class="shoulder-right" data-key="shoulderIntRotR" oninput="calcAsymmetry(this,'shoulderIntRot')"></td>
+                            <td class="asym-cell" id="asym-shoulderIntRot">-</td>
+                            <td class="note-cell"><input type="text" class="shoulder-note" data-key="shoulderIntRotNote"></td>
+                        </tr>
+                        <tr><td class="row-label">俯卧肩部外旋力量</td>
+                            <td><input type="number" step="0.1" class="shoulder-left" data-key="shoulderExtRotL" oninput="calcAsymmetry(this,'shoulderExtRot')"></td>
+                            <td><input type="number" step="0.1" class="shoulder-right" data-key="shoulderExtRotR" oninput="calcAsymmetry(this,'shoulderExtRot')"></td>
+                            <td class="asym-cell" id="asym-shoulderExtRot">-</td>
+                            <td class="note-cell"><input type="text" class="shoulder-note" data-key="shoulderExtRotNote"></td>
+                        </tr>
+                        <tr><td class="row-label">仰卧肩部外旋力量（肘部90°）</td>
+                            <td><input type="number" step="0.1" class="shoulder-left" data-key="shoulderExtRot90L" oninput="calcAsymmetry(this,'shoulderExtRot90')"></td>
+                            <td><input type="number" step="0.1" class="shoulder-right" data-key="shoulderExtRot90R" oninput="calcAsymmetry(this,'shoulderExtRot90')"></td>
+                            <td class="asym-cell" id="asym-shoulderExtRot90">-</td>
+                            <td class="note-cell"><input type="text" class="shoulder-note" data-key="shoulderExtRot90Note"></td>
+                        </tr>
+                        <tr><td class="row-label">仰卧肩部ISO T测试（肩部等长测试）</td>
+                            <td><input type="number" step="0.1" class="shoulder-left" data-key="shoulderIsoTL" oninput="calcAsymmetry(this,'shoulderIsoT')"></td>
+                            <td><input type="number" step="0.1" class="shoulder-right" data-key="shoulderIsoTR" oninput="calcAsymmetry(this,'shoulderIsoT')"></td>
+                            <td class="asym-cell" id="asym-shoulderIsoT">-</td>
+                            <td class="note-cell"><input type="text" class="shoulder-note" data-key="shoulderIsoTNote"></td>
+                        </tr>
+                        <tr><td class="row-label">仰卧肩部ISO Y测试（肩部等长测试）</td>
+                            <td><input type="number" step="0.1" class="shoulder-left" data-key="shoulderIsoYL" oninput="calcAsymmetry(this,'shoulderIsoY')"></td>
+                            <td><input type="number" step="0.1" class="shoulder-right" data-key="shoulderIsoYR" oninput="calcAsymmetry(this,'shoulderIsoY')"></td>
+                            <td class="asym-cell" id="asym-shoulderIsoY">-</td>
+                            <td class="note-cell"><input type="text" class="shoulder-note" data-key="shoulderIsoYNote"></td>
+                        </tr>
+                        <tr><td class="row-label">仰卧肩部ISO I测试（肩部等长测试）</td>
+                            <td><input type="number" step="0.1" class="shoulder-left" data-key="shoulderIsoIL" oninput="calcAsymmetry(this,'shoulderIsoI')"></td>
+                            <td><input type="number" step="0.1" class="shoulder-right" data-key="shoulderIsoIR" oninput="calcAsymmetry(this,'shoulderIsoI')"></td>
+                            <td class="asym-cell" id="asym-shoulderIsoI">-</td>
+                            <td class="note-cell"><input type="text" class="shoulder-note" data-key="shoulderIsoINote"></td>
+                        </tr>
+                        <tr><td class="row-label">俯卧肩部ISO I测试（肩部等长测试）</td>
+                            <td><input type="number" step="0.1" class="shoulder-left" data-key="shoulderIsoProneIL" oninput="calcAsymmetry(this,'shoulderIsoProneI')"></td>
+                            <td><input type="number" step="0.1" class="shoulder-right" data-key="shoulderIsoProneIR" oninput="calcAsymmetry(this,'shoulderIsoProneI')"></td>
+                            <td class="asym-cell" id="asym-shoulderIsoProneI">-</td>
+                            <td class="note-cell"><input type="text" class="shoulder-note" data-key="shoulderIsoProneINote"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 下肢力量测试 -->
+        <div class="form-section">
+            <div class="form-title">下肢力量测试</div>
+            <div class="test-table-wrap">
+                <table class="test-table" id="legTable">
+                    <thead>
+                        <tr>
+                            <th style="min-width:200px;text-align:left;padding-left:12px;">测试项目</th>
+                            <th>左侧</th>
+                            <th>右侧</th>
+                            <th>不对称性 (%)</th>
+                            <th>备注</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td class="row-label">仰卧膝关节伸展力量</td>
+                            <td><input type="number" step="0.1" class="leg-left" data-key="legKneeExtL" oninput="calcAsymmetry(this,'legKneeExt')"></td>
+                            <td><input type="number" step="0.1" class="leg-right" data-key="legKneeExtR" oninput="calcAsymmetry(this,'legKneeExt')"></td>
+                            <td class="asym-cell" id="asym-legKneeExt">-</td>
+                            <td class="note-cell"><input type="text" class="leg-note" data-key="legKneeExtNote"></td>
+                        </tr>
+                        <tr><td class="row-label">仰卧膝关节屈曲力量</td>
+                            <td><input type="number" step="0.1" class="leg-left" data-key="legKneeFlexL" oninput="calcAsymmetry(this,'legKneeFlex')"></td>
+                            <td><input type="number" step="0.1" class="leg-right" data-key="legKneeFlexR" oninput="calcAsymmetry(this,'legKneeFlex')"></td>
+                            <td class="asym-cell" id="asym-legKneeFlex">-</td>
+                            <td class="note-cell"><input type="text" class="leg-note" data-key="legKneeFlexNote"></td>
+                        </tr>
+                        <tr><td class="row-label">北欧弯举测试</td>
+                            <td><input type="number" step="0.1" class="leg-left" data-key="legNordicL" oninput="calcAsymmetry(this,'legNordic')"></td>
+                            <td><input type="number" step="0.1" class="leg-right" data-key="legNordicR" oninput="calcAsymmetry(this,'legNordic')"></td>
+                            <td class="asym-cell" id="asym-legNordic">-</td>
+                            <td class="note-cell"><input type="text" class="leg-note" data-key="legNordicNote"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 弹跳能力测试 -->
+        <div class="form-section">
+            <div class="form-title">弹跳能力测试（结果列）</div>
+            <div class="test-table-wrap">
+                <table class="test-table" id="jumpTable">
+                    <thead>
+                        <tr>
+                            <th style="min-width:200px;text-align:left;padding-left:12px;">测试项目</th>
+                            <th>左侧</th>
+                            <th>右侧</th>
+                            <th>不对称性 (%)</th>
+                            <th>备注</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td class="row-label">阿巴拉科夫跳 - 最大跳跃高度（飞行时间）</td>
+                            <td><input type="number" step="0.1" class="jump-left" data-key="jumpAbalakovL" oninput="calcAsymmetry(this,'jumpAbalakov')"></td>
+                            <td><input type="number" step="0.1" class="jump-right" data-key="jumpAbalakovR" oninput="calcAsymmetry(this,'jumpAbalakov')"></td>
+                            <td class="asym-cell" id="asym-jumpAbalakov">-</td>
+                            <td class="note-cell"><input type="text" class="jump-note" data-key="jumpAbalakovNote"></td>
+                        </tr>
+                        <tr><td class="row-label">反向运动跳 - 最大跳跃高度（飞行时间）</td>
+                            <td><input type="number" step="0.1" class="jump-left" data-key="jumpCMJflightL" oninput="calcAsymmetry(this,'jumpCMJflight')"></td>
+                            <td><input type="number" step="0.1" class="jump-right" data-key="jumpCMJflightR" oninput="calcAsymmetry(this,'jumpCMJflight')"></td>
+                            <td class="asym-cell" id="asym-jumpCMJflight">-</td>
+                            <td class="note-cell"><input type="text" class="jump-note" data-key="jumpCMJflightNote"></td>
+                        </tr>
+                        <tr><td class="row-label">反向运动跳 - 最大跳跃高度（冲量-动量）</td>
+                            <td><input type="number" step="0.1" class="jump-left" data-key="jumpCMJimplusL" oninput="calcAsymmetry(this,'jumpCMJimplus')"></td>
+                            <td><input type="number" step="0.1" class="jump-right" data-key="jumpCMJimplusR" oninput="calcAsymmetry(this,'jumpCMJimplus')"></td>
+                            <td class="asym-cell" id="asym-jumpCMJimplus">-</td>
+                            <td class="note-cell"><input type="text" class="jump-note" data-key="jumpCMJimplusNote"></td>
+                        </tr>
+                        <tr><td class="row-label">深蹲跳 - 最大跳跃高度（飞行时间）</td>
+                            <td><input type="number" step="0.1" class="jump-left" data-key="jumpSJflightL" oninput="calcAsymmetry(this,'jumpSJflight')"></td>
+                            <td><input type="number" step="0.1" class="jump-right" data-key="jumpSJflightR" oninput="calcAsymmetry(this,'jumpSJflight')"></td>
+                            <td class="asym-cell" id="asym-jumpSJflight">-</td>
+                            <td class="note-cell"><input type="text" class="jump-note" data-key="jumpSJflightNote"></td>
+                        </tr>
+                        <tr><td class="row-label">深蹲跳 - 最大向心平均力量/体重</td>
+                            <td><input type="number" step="0.1" class="jump-left" data-key="jumpSJforceL" oninput="calcAsymmetry(this,'jumpSJforce')"></td>
+                            <td><input type="number" step="0.1" class="jump-right" data-key="jumpSJforceR" oninput="calcAsymmetry(this,'jumpSJforce')"></td>
+                            <td class="asym-cell" id="asym-jumpSJforce">-</td>
+                            <td class="note-cell"><input type="text" class="jump-note" data-key="jumpSJforceNote"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 平衡能力测试 -->
+        <div class="form-section">
+            <div class="form-title">平衡能力测试</div>
+            <div class="test-table-wrap">
+                <table class="test-table" id="balanceTable">
+                    <thead>
+                        <tr>
+                            <th style="min-width:200px;text-align:left;padding-left:12px;">测试项目</th>
+                            <th>左侧</th>
+                            <th>右侧</th>
+                            <th>不对称性 (%)</th>
+                            <th>备注</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td class="row-label">单腿稳定范围测试 - 压力中心椭圆平均面积</td>
+                            <td><input type="number" step="0.1" class="balance-left" data-key="balanceStabL" oninput="calcAsymmetry(this,'balanceStab')"></td>
+                            <td><input type="number" step="0.1" class="balance-right" data-key="balanceStabR" oninput="calcAsymmetry(this,'balanceStab')"></td>
+                            <td class="asym-cell" id="asym-balanceStab">-</td>
+                            <td class="note-cell"><input type="text" class="balance-note" data-key="balanceStabNote"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 等速测试 - 髋部内收外展 -->
+        <div class="form-section">
+            <div class="form-title">等速测试 - 髋部内收外展</div>
+            <div class="test-table-wrap">
+                <table class="test-table" id="hipTable">
+                    <thead>
+                        <tr>
+                            <th style="min-width:200px;text-align:left;padding-left:12px;">测试项目</th>
+                            <th>数值</th>
+                            <th>备注</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td class="row-label">内收</td>
+                            <td><input type="number" step="0.1" class="hip-val" data-key="hipAdd"></td>
+                            <td class="note-cell"><input type="text" class="hip-note" data-key="hipAddNote"></td>
+                        </tr>
+                        <tr><td class="row-label">外展</td>
+                            <td><input type="number" step="0.1" class="hip-val" data-key="hipAbd"></td>
+                            <td class="note-cell"><input type="text" class="hip-note" data-key="hipAbdNote"></td>
+                        </tr>
+                        <tr><td class="row-label">内收离心</td>
+                            <td><input type="number" step="0.1" class="hip-val" data-key="hipAddEcc"></td>
+                            <td class="note-cell"><input type="text" class="hip-note" data-key="hipAddEccNote"></td>
+                        </tr>
+                        <tr><td class="row-label">外展离心</td>
+                            <td><input type="number" step="0.1" class="hip-val" data-key="hipAbdEcc"></td>
+                            <td class="note-cell"><input type="text" class="hip-note" data-key="hipAbdEccNote"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 等速测试 - 腹背 -->
+        <div class="form-section">
+            <div class="form-title">等速测试 - 腹背等速</div>
+            <div class="test-table-wrap">
+                <table class="test-table" id="trunkTable">
+                    <thead>
+                        <tr>
+                            <th style="min-width:200px;text-align:left;padding-left:12px;">测试项目</th>
+                            <th>数值</th>
+                            <th>备注</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td class="row-label">后伸</td>
+                            <td><input type="number" step="0.1" class="trunk-val" data-key="trunkExt"></td>
+                            <td class="note-cell"><input type="text" class="trunk-note" data-key="trunkExtNote"></td>
+                        </tr>
+                        <tr><td class="row-label">前屈</td>
+                            <td><input type="number" step="0.1" class="trunk-val" data-key="trunkFlex"></td>
+                            <td class="note-cell"><input type="text" class="trunk-note" data-key="trunkFlexNote"></td>
+                        </tr>
+                        <tr><td class="row-label">后伸离心</td>
+                            <td><input type="number" step="0.1" class="trunk-val" data-key="trunkExtEcc"></td>
+                            <td class="note-cell"><input type="text" class="trunk-note" data-key="trunkExtEccNote"></td>
+                        </tr>
+                        <tr><td class="row-label">前屈离心</td>
+                            <td><input type="number" step="0.1" class="trunk-val" data-key="trunkFlexEcc"></td>
+                            <td class="note-cell"><input type="text" class="trunk-note" data-key="trunkFlexEccNote"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 等速测试 - 腰部综合 -->
+        <div class="form-section">
+            <div class="form-title">等速测试 - 腰部综合</div>
+            <div class="test-table-wrap">
+                <table class="test-table" id="lumbarTable">
+                    <thead>
+                        <tr>
+                            <th style="min-width:200px;text-align:left;padding-left:12px;">测试项目</th>
+                            <th>数值</th>
+                            <th>备注</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td class="row-label">前推</td>
+                            <td><input type="number" step="0.1" class="lumbar-val" data-key="lumbarPush"></td>
+                            <td class="note-cell"><input type="text" class="lumbar-note" data-key="lumbarPushNote"></td>
+                        </tr>
+                        <tr><td class="row-label">后拉</td>
+                            <td><input type="number" step="0.1" class="lumbar-val" data-key="lumbarPull"></td>
+                            <td class="note-cell"><input type="text" class="lumbar-note" data-key="lumbarPullNote"></td>
+                        </tr>
+                        <tr><td class="row-label">前推离心</td>
+                            <td><input type="number" step="0.1" class="lumbar-val" data-key="lumbarPushEcc"></td>
+                            <td class="note-cell"><input type="text" class="lumbar-note" data-key="lumbarPushEccNote"></td>
+                        </tr>
+                        <tr><td class="row-label">后拉离心</td>
+                            <td><input type="number" step="0.1" class="lumbar-val" data-key="lumbarPullEcc"></td>
+                            <td class="note-cell"><input type="text" class="lumbar-note" data-key="lumbarPullEccNote"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 等速测试 - 胸背等速 -->
+        <div class="form-section">
+            <div class="form-title">等速测试 - 胸背等速</div>
+            <div class="test-table-wrap">
+                <table class="test-table" id="thoracicTable">
+                    <thead>
+                        <tr>
+                            <th style="min-width:200px;text-align:left;padding-left:12px;">测试项目</th>
+                            <th>数值</th>
+                            <th>备注</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td class="row-label">左旋</td>
+                            <td><input type="number" step="0.1" class="thoracic-val" data-key="thoracicLeftRot"></td>
+                            <td class="note-cell"><input type="text" class="thoracic-note" data-key="thoracicLeftRotNote"></td>
+                        </tr>
+                        <tr><td class="row-label">右旋</td>
+                            <td><input type="number" step="0.1" class="thoracic-val" data-key="thoracicRightRot"></td>
+                            <td class="note-cell"><input type="text" class="thoracic-note" data-key="thoracicRightRotNote"></td>
+                        </tr>
+                        <tr><td class="row-label">左旋离心</td>
+                            <td><input type="number" step="0.1" class="thoracic-val" data-key="thoracicLeftRotEcc"></td>
+                            <td class="note-cell"><input type="text" class="thoracic-note" data-key="thoracicLeftRotEccNote"></td>
+                        </tr>
+                        <tr><td class="row-label">右旋离心</td>
+                            <td><input type="number" step="0.1" class="thoracic-val" data-key="thoracicRightRotEcc"></td>
+                            <td class="note-cell"><input type="text" class="thoracic-note" data-key="thoracicRightRotEccNote"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 等速测试 - 膝关节 -->
+        <div class="form-section">
+            <div class="form-title">等速测试 - 膝关节等速</div>
+            <div class="test-table-wrap">
+                <table class="test-table" id="kneeIsoTable">
+                    <thead>
+                        <tr>
+                            <th style="min-width:200px;text-align:left;padding-left:12px;">测试项目</th>
+                            <th>数值</th>
+                            <th>备注</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="section-header"><td colspan="3">左侧</td></tr>
+                        <tr><td class="row-label" style="padding-left:32px;">伸膝</td>
+                            <td><input type="number" step="0.1" class="knee-iso-val" data-key="kneeIsoLeftExt"></td>
+                            <td class="note-cell"><input type="text" class="knee-iso-note" data-key="kneeIsoLeftExtNote"></td>
+                        </tr>
+                        <tr><td class="row-label" style="padding-left:32px;">屈膝</td>
+                            <td><input type="number" step="0.1" class="knee-iso-val" data-key="kneeIsoLeftFlex"></td>
+                            <td class="note-cell"><input type="text" class="knee-iso-note" data-key="kneeIsoLeftFlexNote"></td>
+                        </tr>
+                        <tr><td class="row-label" style="padding-left:32px;">屈膝离心</td>
+                            <td><input type="number" step="0.1" class="knee-iso-val" data-key="kneeIsoLeftFlexEcc"></td>
+                            <td class="note-cell"><input type="text" class="knee-iso-note" data-key="kneeIsoLeftFlexEccNote"></td>
+                        </tr>
+                        <tr><td class="row-label" style="padding-left:32px;">伸膝离心</td>
+                            <td><input type="number" step="0.1" class="knee-iso-val" data-key="kneeIsoLeftExtEcc"></td>
+                            <td class="note-cell"><input type="text" class="knee-iso-note" data-key="kneeIsoLeftExtEccNote"></td>
+                        </tr>
+                        <tr class="section-header"><td colspan="3">右侧</td></tr>
+                        <tr><td class="row-label" style="padding-left:32px;">伸膝</td>
+                            <td><input type="number" step="0.1" class="knee-iso-val" data-key="kneeIsoRightExt"></td>
+                            <td class="note-cell"><input type="text" class="knee-iso-note" data-key="kneeIsoRightExtNote"></td>
+                        </tr>
+                        <tr><td class="row-label" style="padding-left:32px;">屈膝</td>
+                            <td><input type="number" step="0.1" class="knee-iso-val" data-key="kneeIsoRightFlex"></td>
+                            <td class="note-cell"><input type="text" class="knee-iso-note" data-key="kneeIsoRightFlexNote"></td>
+                        </tr>
+                        <tr><td class="row-label" style="padding-left:32px;">屈膝离心</td>
+                            <td><input type="number" step="0.1" class="knee-iso-val" data-key="kneeIsoRightFlexEcc"></td>
+                            <td class="note-cell"><input type="text" class="knee-iso-note" data-key="kneeIsoRightFlexEccNote"></td>
+                        </tr>
+                        <tr><td class="row-label" style="padding-left:32px;">伸膝离心</td>
+                            <td><input type="number" step="0.1" class="knee-iso-val" data-key="kneeIsoRightExtEcc"></td>
+                            <td class="note-cell"><input type="text" class="knee-iso-note" data-key="kneeIsoRightExtEccNote"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 等速测试 - 踝关节 -->
+        <div class="form-section">
+            <div class="form-title">等速测试 - 踝关节等速</div>
+            <div class="test-table-wrap">
+                <table class="test-table" id="ankleIsoTable">
+                    <thead>
+                        <tr>
+                            <th style="min-width:200px;text-align:left;padding-left:12px;">测试项目</th>
+                            <th>数值</th>
+                            <th>备注</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="section-header"><td colspan="3">左侧</td></tr>
+                        <tr><td class="row-label" style="padding-left:32px;">背屈</td>
+                            <td><input type="number" step="0.1" class="ankle-iso-val" data-key="ankleIsoLeftDorsi"></td>
+                            <td class="note-cell"><input type="text" class="ankle-iso-note" data-key="ankleIsoLeftDorsiNote"></td>
+                        </tr>
+                        <tr><td class="row-label" style="padding-left:32px;">跖屈</td>
+                            <td><input type="number" step="0.1" class="ankle-iso-val" data-key="ankleIsoLeftPlantar"></td>
+                            <td class="note-cell"><input type="text" class="ankle-iso-note" data-key="ankleIsoLeftPlantarNote"></td>
+                        </tr>
+                        <tr class="section-header"><td colspan="3">右侧</td></tr>
+                        <tr><td class="row-label" style="padding-left:32px;">背屈</td>
+                            <td><input type="number" step="0.1" class="ankle-iso-val" data-key="ankleIsoRightDorsi"></td>
+                            <td class="note-cell"><input type="text" class="ankle-iso-note" data-key="ankleIsoRightDorsiNote"></td>
+                        </tr>
+                        <tr><td class="row-label" style="padding-left:32px;">跖屈</td>
+                            <td><input type="number" step="0.1" class="ankle-iso-val" data-key="ankleIsoRightPlantar"></td>
+                            <td class="note-cell"><input type="text" class="ankle-iso-note" data-key="ankleIsoRightPlantarNote"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="action-bar">
+            <button class="btn btn-primary" onclick="saveData()">保存数据</button>
+            <button class="btn btn-outline" onclick="clearForm()">清空表单</button>
+        </div>
+    </div>
+
+    <!-- ==================== 历史查询 ==================== -->
+    <div id="query" class="content">
+        <div class="search-bar">
+            <input type="text" id="searchName" placeholder="按姓名搜索..." style="flex:1;min-width:150px;">
+            <input type="date" id="searchDate">
+            <select id="searchGender">
+                <option value="">全部性别</option>
+                <option value="男">男</option>
+                <option value="女">女</option>
+            </select>
+            <button class="btn btn-primary btn-sm" onclick="searchData()">搜索</button>
+            <button class="btn btn-info btn-sm" onclick="loadAllData()">显示全部</button>
+        </div>
+        <div style="overflow-x:auto;">
+            <table class="test-table" id="historyTable">
+                <thead>
+                    <tr>
+                        <th>姓名</th>
+                        <th>年龄</th>
+                        <th>性别</th>
+                        <th>测试日期</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="historyBody">
+                    <tr><td colspan="5" style="text-align:center;padding:30px;color:#999;">暂无数据，请先录入数据</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ==================== 数据分析 ==================== -->
+    <div id="analysis" class="content">
+        <div class="stats-grid" id="statsContainer"></div>
+        <div style="overflow-x:auto;">
+            <table class="test-table">
+                <thead>
+                    <tr>
+                        <th style="min-width:200px;text-align:left;padding-left:12px;">测试指标</th>
+                        <th>左侧平均值</th>
+                        <th>右侧平均值</th>
+                        <th>不对称性(%)</th>
+                        <th>评估建议</th>
+                    </tr>
+                </thead>
+                <tbody id="analysisBody">
+                    <tr><td colspan="5" style="text-align:center;padding:30px;color:#999;">暂无数据，请先录入数据</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- ==================== 详情弹窗 ==================== -->
+<div class="modal-overlay" id="detailModal">
+    <div class="modal">
+        <button class="close-btn" onclick="closeModal()">&times;</button>
+        <h2 id="modalTitle">测试详情</h2>
+        <div id="modalContent"></div>
+    </div>
+</div>
+
+<script>
+    let testData = [];
+
+    function loadFromStorage() {
+        try {
+            const stored = localStorage.getItem('isokineticFullTestData');
+            if (stored) testData = JSON.parse(stored);
+        } catch(e) { testData = []; }
+    }
+
+    function saveToStorage() {
+        localStorage.setItem('isokineticFullTestData', JSON.stringify(testData));
+    }
+
+    function showToast(msg, isError) {
+        const t = document.createElement('div');
+        t.className = 'toast' + (isError ? ' error' : '');
+        t.textContent = msg;
+        document.body.appendChild(t);
+        setTimeout(() => t.remove(), 2200);
+    }
+
+    function getVal(id) {
+        const el = document.getElementById(id);
+        if (!el) return '';
+        if (el.type === 'date' || el.tagName === 'SELECT') return el.value;
+        return el.value;
+    }
+
+    function calcAsymmetry(input, prefix) {
+        const row = input.closest('tr');
+        const leftInput = row.querySelector('input[data-key$="L"]');
+        const rightInput = row.querySelector(input.tagName === 'INPUT' && input.dataset.key.endsWith('R') ? 'input[data-key$="R"]' : 'input[data-key$="L"]');
+        if (input.dataset.key.endsWith('R')) {
+            const l = row.querySelector('input[data-key$="L"]');
+            const r = row.querySelector('input[data-key$="R"]');
+            const lv = parseFloat(l.value) || 0;
+            const rv = parseFloat(r.value) || 0;
+            const asymCell = document.getElementById('asym-' + prefix);
+            if (asymCell) {
+                if (lv === 0 && rv === 0) asymCell.textContent = '-';
+                else if (lv === 0 || rv === 0) asymCell.textContent = 'N/A';
+                else asymCell.textContent = (Math.abs(lv - rv) / ((lv + rv) / 2) * 100).toFixed(1);
+            }
+        } else {
+            const l = row.querySelector('input[data-key$="L"]');
+            const r = row.querySelector('input[data-key$="R"]');
+            const lv = parseFloat(l.value) || 0;
+            const rv = parseFloat(r.value) || 0;
+            const asymCell = document.getElementById('asym-' + prefix);
+            if (asymCell) {
+                if (lv === 0 && rv === 0) asymCell.textContent = '-';
+                else if (lv === 0 || rv === 0) asymCell.textContent = 'N/A';
+                else asymCell.textContent = (Math.abs(lv - rv) / ((lv + rv) / 2) * 100).toFixed(1);
+            }
+        }
+    }
+
+    function collectFormData() {
+        const name = document.getElementById('athleteName').value.trim();
+        const age = document.getElementById('athleteAge').value;
+        const date = document.getElementById('testDate').value;
+        if (!name || !age || !date) {
+            showToast('请填写完整的基本信息（姓名、年龄、测试日期）', true);
+            return null;
+        }
+
+        const data = {
+            id: Date.now(),
+            name,
+            age: parseInt(age),
+            gender: document.getElementById('athleteGender').value,
+            height: parseFloat(document.getElementById('athleteHeight').value) || 0,
+            weight: parseFloat(document.getElementById('athleteWeight').value) || 0,
+            date,
+            timestamp: new Date().toISOString(),
+        };
+
+        document.querySelectorAll('#input input[data-key], #input select[data-key]').forEach(el => {
+            if (el.dataset.key) data[el.dataset.key] = el.value || '';
+        });
+
+        document.querySelectorAll('.shoulder-left, .shoulder-right, .leg-left, .leg-right, .jump-left, .jump-right, .balance-left, .balance-right').forEach(el => {
+            if (el.dataset.key) data[el.dataset.key] = parseFloat(el.value) || 0;
+        });
+
+        document.querySelectorAll('.shoulder-note, .leg-note, .jump-note, .balance-note').forEach(el => {
+            if (el.dataset.key) data[el.dataset.key] = el.value || '';
+        });
+
+        document.querySelectorAll('.hip-val, .trunk-val, .lumbar-val, .thoracic-val, .knee-iso-val, .ankle-iso-val').forEach(el => {
+            if (el.dataset.key) data[el.dataset.key] = parseFloat(el.value) || 0;
+        });
+
+        document.querySelectorAll('.hip-note, .trunk-note, .lumbar-note, .thoracic-note, .knee-iso-note, .ankle-iso-note').forEach(el => {
+            if (el.dataset.key) data[el.dataset.key] = el.value || '';
+        });
+
+        return data;
+    }
+
+    function saveData() {
+        const data = collectFormData();
+        if (!data) return;
+        testData.push(data);
+        saveToStorage();
+        showToast('数据保存成功！');
+        clearForm();
+    }
+
+    function clearForm() {
+        document.querySelectorAll('#input input').forEach(el => {
+            if (el.type !== 'date') el.value = '';
+        });
+        document.querySelectorAll('#input select').forEach(el => el.selectedIndex = 0);
+        document.getElementById('testDate').value = new Date().toISOString().split('T')[0];
+        document.querySelectorAll('.asym-cell').forEach(el => el.textContent = '-');
+    }
+
+    function deleteRecord(id) {
+        if (!confirm('确定要删除这条记录吗？')) return;
+        testData = testData.filter(item => item.id !== id);
+        saveToStorage();
+        loadAllData();
+        showToast('删除成功');
+    }
+
+    function viewDetail(id) {
+        const item = testData.find(d => d.id === id);
+        if (!item) return;
+        document.getElementById('modalTitle').textContent = item.name + ' - 测试详情';
+        let html = '<table><thead><tr><th>测试项目</th><th>左侧/数值</th><th>右侧/备注</th></tr></thead><tbody>';
+
+        const sections = [
+            { label: '基本信息', keys: [
+                ['年龄', item.age], ['性别', item.gender || '-'], ['身高', item.height + ' cm'], ['体重', item.weight + ' kg'], ['测试日期', item.date]
+            ]},
+            { label: '肩部力量测试', prefix: 'shoulder', items: [
+                ['仰卧肩部内旋力量（肘部90°）', 'shoulderIntRot'],
+                ['俯卧肩部外旋力量', 'shoulderExtRot'],
+                ['仰卧肩部外旋力量（肘部90°）', 'shoulderExtRot90'],
+                ['仰卧肩部ISO T测试', 'shoulderIsoT'],
+                ['仰卧肩部ISO Y测试', 'shoulderIsoY'],
+                ['仰卧肩部ISO I测试', 'shoulderIsoI'],
+                ['俯卧肩部ISO I测试', 'shoulderIsoProneI'],
+            ]},
+            { label: '下肢力量测试', prefix: 'leg', items: [
+                ['仰卧膝关节伸展力量', 'legKneeExt'],
+                ['仰卧膝关节屈曲力量', 'legKneeFlex'],
+                ['北欧弯举测试', 'legNordic'],
+            ]},
+            { label: '弹跳能力测试', prefix: 'jump', items: [
+                ['阿巴拉科夫跳（飞行时间）', 'jumpAbalakov'],
+                ['反向运动跳（飞行时间）', 'jumpCMJflight'],
+                ['反向运动跳（冲量-动量）', 'jumpCMJimplus'],
+                ['深蹲跳（飞行时间）', 'jumpSJflight'],
+                ['深蹲跳（向心力量/体重）', 'jumpSJforce'],
+            ]},
+            { label: '平衡能力测试', prefix: 'balance', items: [
+                ['单腿稳定范围测试', 'balanceStab'],
+            ]},
+        ];
+
+        sections.forEach(sec => {
+            html += `<tr style="background:#eef2f7;font-weight:700;"><td colspan="3" style="padding:8px 12px;text-align:left;">${sec.label}</td></tr>`;
+            if (sec.keys) {
+                sec.keys.forEach(k => {
+                    html += `<tr><td style="text-align:left;padding-left:16px;">${k[0]}</td><td colspan="2">${k[1] ?? '-'}</td></tr>`;
+                });
+            } else if (sec.items) {
+                sec.items.forEach(itemPair => {
+                    const leftKey = sec.prefix + itemPair[1] + 'L';
+                    const rightKey = sec.prefix + itemPair[1] + 'R';
+                    const noteKey = sec.prefix + itemPair[1] + 'Note';
+                    const lv = item[leftKey] !== undefined ? item[leftKey] : '-';
+                    const rv = item[rightKey] !== undefined ? item[rightKey] : '-';
+                    const note = item[noteKey] || '';
+                    html += `<tr><td style="text-align:left;padding-left:16px;">${itemPair[0]}</td><td>${lv}</td><td>${rv}${note ? ' (' + note + ')' : ''}</td></tr>`;
+                });
+            }
+        });
+
+        const isoKeys = [
+            ['髋部内收', 'hipAdd'], ['髋部外展', 'hipAbd'], ['髋部内收离心', 'hipAddEcc'], ['髋部外展离心', 'hipAbdEcc'],
+            ['腹背后伸', 'trunkExt'], ['腹背前屈', 'trunkFlex'], ['腹背后伸离心', 'trunkExtEcc'], ['腹背前屈离心', 'trunkFlexEcc'],
+            ['腰部前推', 'lumbarPush'], ['腰部后拉', 'lumbarPull'], ['腰部前推离心', 'lumbarPushEcc'], ['腰部后拉离心', 'lumbarPullEcc'],
+            ['胸背左旋', 'thoracicLeftRot'], ['胸背右旋', 'thoracicRightRot'], ['胸背左旋离心', 'thoracicLeftRotEcc'], ['胸背右旋离心', 'thoracicRightRotEcc'],
+        ];
+
+        html += '<tr style="background:#eef2f7;font-weight:700;"><td colspan="3" style="padding:8px 12px;text-align:left;">等速测试</td></tr>';
+        isoKeys.forEach(k => {
+            const val = item[k[1]] !== undefined ? item[k[1]] : '-';
+            const noteKey = k[1] + 'Note';
+            const note = item[noteKey] || '';
+            html += `<tr><td style="text-align:left;padding-left:16px;">${k[0]}</td><td colspan="2">${val}${note ? ' (' + note + ')' : ''}</td></tr>`;
+        });
+
+        const kneeAnkle = [
+            ['左侧伸膝', 'kneeIsoLeftExt'], ['左侧屈膝', 'kneeIsoLeftFlex'], ['左侧屈膝离心', 'kneeIsoLeftFlexEcc'], ['左侧伸膝离心', 'kneeIsoLeftExtEcc'],
+            ['右侧伸膝', 'kneeIsoRightExt'], ['右侧屈膝', 'kneeIsoRightFlex'], ['右侧屈膝离心', 'kneeIsoRightFlexEcc'], ['右侧伸膝离心', 'kneeIsoRightExtEcc'],
+            ['左侧背屈', 'ankleIsoLeftDorsi'], ['左侧跖屈', 'ankleIsoLeftPlantar'], ['右侧背屈', 'ankleIsoRightDorsi'], ['右侧跖屈', 'ankleIsoRightPlantar'],
+        ];
+        kneeAnkle.forEach(k => {
+            const val = item[k[1]] !== undefined ? item[k[1]] : '-';
+            const noteKey = k[1] + 'Note';
+            const note = item[noteKey] || '';
+            html += `<tr><td style="text-align:left;padding-left:16px;">${k[0]}</td><td colspan="2">${val}${note ? ' (' + note + ')' : ''}</td></tr>`;
+        });
+
+        html += '</tbody></table>';
+        document.getElementById('modalContent').innerHTML = html;
+        document.getElementById('detailModal').classList.add('show');
+    }
+
+    function closeModal() {
+        document.getElementById('detailModal').classList.remove('show');
+    }
+    document.getElementById('detailModal').addEventListener('click', function(e) {
+        if (e.target === this) closeModal();
+    });
+
+    function displayHistory(data) {
+        const tbody = document.getElementById('historyBody');
+        if (!data || data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px;color:#999;">暂无数据</td></tr>';
+            return;
+        }
+        tbody.innerHTML = data.map(item => `
+            <tr>
+                <td>${item.name}</td>
+                <td>${item.age}</td>
+                <td>${item.gender || '-'}</td>
+                <td>${item.date}</td>
+                <td>
+                    <button class="btn btn-info btn-sm" onclick="viewDetail(${item.id})">详情</button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteRecord(${item.id})">删除</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function loadAllData() {
+        displayHistory(testData);
+    }
+
+    function searchData() {
+        const name = document.getElementById('searchName').value.trim().toLowerCase();
+        const date = document.getElementById('searchDate').value;
+        const gender = document.getElementById('searchGender').value;
+        let filtered = testData;
+        if (name) filtered = filtered.filter(i => i.name.toLowerCase().includes(name));
+        if (date) filtered = filtered.filter(i => i.date === date);
+        if (gender) filtered = filtered.filter(i => i.gender === gender);
+        displayHistory(filtered);
+    }
+
+    function updateAnalysis() {
+        const container = document.getElementById('statsContainer');
+        const body = document.getElementById('analysisBody');
+        if (testData.length === 0) {
+            container.innerHTML = '';
+            body.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px;color:#999;">暂无数据，请先录入数据</td></tr>';
+            return;
+        }
+        const count = testData.length;
+        const avgAge = (testData.reduce((s, d) => s + d.age, 0) / count).toFixed(1);
+        const avgHeight = testData.reduce((s, d) => s + d.height, 0) / count;
+        const avgWeight = testData.reduce((s, d) => s + d.weight, 0) / count;
+        container.innerHTML = `
+            <div class="stat-card"><h4>总测试次数</h4><div class="value">${count}</div></div>
+            <div class="stat-card"><h4>平均年龄</h4><div class="value">${avgAge} 岁</div></div>
+            <div class="stat-card"><h4>平均身高</h4><div class="value">${avgHeight ? avgHeight.toFixed(1) : '-'} cm</div></div>
+            <div class="stat-card"><h4>平均体重</h4><div class="value">${avgWeight ? avgWeight.toFixed(1) : '-'} kg</div></div>
+        `;
+
+        const pairs = [
+            ['肩部内旋', 'shoulderIntRot'],
+            ['肩部外旋', 'shoulderExtRot'],
+            ['肩部外旋(90°)', 'shoulderExtRot90'],
+            ['肩部ISO T', 'shoulderIsoT'],
+            ['肩部ISO Y', 'shoulderIsoY'],
+            ['肩部ISO I', 'shoulderIsoI'],
+            ['肩部ISO俯卧I', 'shoulderIsoProneI'],
+            ['膝关节伸展', 'legKneeExt'],
+            ['膝关节屈曲', 'legKneeFlex'],
+            ['北欧弯举', 'legNordic'],
+            ['阿巴拉科夫跳', 'jumpAbalakov'],
+            ['CMJ飞行时间', 'jumpCMJflight'],
+            ['CMJ冲量-动量', 'jumpCMJimplus'],
+            ['SJ飞行时间', 'jumpSJflight'],
+            ['SJ向心力量/体重', 'jumpSJforce'],
+            ['单腿稳定范围', 'balanceStab'],
+        ];
+
+        let rows = '';
+        pairs.forEach(p => {
+            const lk = p[1] + 'L';
+            const rk = p[1] + 'R';
+            const valsL = testData.filter(d => d[lk] && d[lk] > 0).map(d => d[lk]);
+            const valsR = testData.filter(d => d[rk] && d[rk] > 0).map(d => d[rk]);
+            if (valsL.length === 0 && valsR.length === 0) return;
+            const avgL = valsL.length ? (valsL.reduce((a,b) => a+b, 0) / valsL.length).toFixed(1) : '-';
+            const avgR = valsR.length ? (valsR.reduce((a,b) => a+b, 0) / valsR.length).toFixed(1) : '-';
+            let asym = '-', suggestion = '-';
+            if (avgL !== '-' && avgR !== '-' && parseFloat(avgL) > 0 && parseFloat(avgR) > 0) {
+                asym = (Math.abs(parseFloat(avgL) - parseFloat(avgR)) / ((parseFloat(avgL) + parseFloat(avgR)) / 2) * 100).toFixed(1) + '%';
+                const a = parseFloat(asym);
+                suggestion = a < 10 ? '平衡良好' : a < 20 ? '轻度不对称' : '明显不对称，需关注';
+            }
+            rows += `<tr><td style="text-align:left;padding-left:12px;">${p[0]}</td><td>${avgL}</td><td>${avgR}</td><td>${asym}</td><td>${suggestion}</td></tr>`;
+        });
+
+        body.innerHTML = rows || '<tr><td colspan="5" style="text-align:center;padding:30px;color:#999;">无可对比的双侧数据</td></tr>';
+    }
+
+    function switchTab(tabName, el) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+        el.classList.add('active');
+        document.getElementById(tabName).classList.add('active');
+        if (tabName === 'query') loadAllData();
+        else if (tabName === 'analysis') updateAnalysis();
+    }
+
+    function exportCSV() {
+        if (testData.length === 0) { showToast('暂无数据可导出', true); return; }
+        const headers = ['序号','姓名','年龄','性别','身高','体重','测试日期'];
+        const allKeys = new Set();
+        testData.forEach(d => Object.keys(d).forEach(k => allKeys.add(k)));
+        const extraKeys = Array.from(allKeys).filter(k => !['id','name','age','gender','height','weight','date','timestamp'].includes(k));
+        const fullHeaders = [...headers, ...extraKeys];
+        let csv = '\uFEFF' + fullHeaders.join(',') + '\n';
+        testData.forEach((d, i) => {
+            const row = [(i+1), d.name, d.age, d.gender||'', d.height||'', d.weight||'', d.date];
+            extraKeys.forEach(k => {
+                let v = d[k] !== undefined ? d[k] : '';
+                if (typeof v === 'string' && v.includes(',')) v = '"' + v + '"';
+                row.push(v);
+            });
+            csv += row.join(',') + '\n';
+        });
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = '等速测试数据_' + new Date().toISOString().slice(0,10) + '.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('CSV导出成功！');
+    }
+
+    function exportJSON() {
+        if (testData.length === 0) { showToast('暂无数据可导出', true); return; }
+        const json = JSON.stringify(testData, null, 2);
+        const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = '等速测试数据_' + new Date().toISOString().slice(0,10) + '.json';
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('JSON导出成功！');
+    }
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeModal();
+    });
+
+    loadFromStorage();
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('testDate').value = today;
+</script>
+
+</body>
+</html>
